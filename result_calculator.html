@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+
+{% block title %}Result Calculator - Result Management System{% endblock %}
+
+{% block additional_styles %}
+.calculator-container {
+    padding: 2rem 0;
+}
+
+.calculator-header {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.btn-back {
+    background-color: #6c757d;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    margin-right: 1rem;
+}
+
+.btn-back:hover {
+    background-color: #5a6268;
+    color: white;
+}
+
+.btn-logout {
+    background-color: #dc3545;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    margin-left: 1rem;
+}
+
+.btn-logout:hover {
+    background-color: #c82333;
+    color: white;
+}
+
+.btn-insert {
+    background-color: #28a745;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    font-weight: 500;
+    min-width: 100px;
+    margin-right: 1rem;
+}
+
+.btn-insert:hover {
+    background-color: #218838;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-show {
+    background-color: #007bff;
+    color: white;
+    padding: 0.6rem 1.2rem;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-size: 1.1rem;
+    font-weight: 500;
+    min-width: 120px;
+    display: inline-block;
+    margin: 1rem auto 0;
+}
+
+.btn-show:hover {
+    background-color: #0056b3;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-update {
+    background-color: #fd7e14;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    font-weight: 500;
+    min-width: 100px;
+    margin-right: 1rem;
+    border: none;
+}
+
+.btn-update:hover {
+    background-color: #e55a00;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-delete {
+    background-color: #ffc107;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-size: 1rem;
+    font-weight: 500;
+    min-width: 100px;
+    margin-right: 1rem;
+    border: none;
+}
+
+.btn-delete:hover {
+    background-color: #e0a800;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.calculator-form {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    min-width: 300px;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    animation: slideIn 0.5s ease-out;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}">Tech Excellence College</a>
+        <div class="d-flex">
+            <a href="{{ url_for('results', student_name=student_name) }}" class="btn-back">Back to Results</a>
+            <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}" role="alert">
+                {{ message }}
+                <button type="button" class="close" onclick="this.parentElement.style.display='none'" style="float: right; background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="container calculator-container">
+    <div class="calculator-header">
+        <h1>Result Calculator for {{ student_name }}</h1>
+        <p class="text-muted">Enter subject details and calculate results</p>
+    </div>
+    
+    <div class="calculator-form">
+        <h3 class="mb-3">Insert Result</h3>
+        <form method="POST" action="{{ url_for('calculate_result', student_name=student_name) }}">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="subject" class="form-label">Subject Name</label>
+                    <input type="text" class="form-control" id="subject" name="subject" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="type" class="form-label">Exam Type</label>
+                    <select class="form-select" id="type" name="type" required>
+                        <option value="">Select Type</option>
+                        <option value="Internal">Internal</option>
+                        <option value="Theory">Theory</option>
+                        <option value="Practical">Practical</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="maximum_marks" class="form-label">Maximum Marks</label>
+                    <input type="number" class="form-control" id="maximum_marks" name="maximum_marks" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="minimum_marks" class="form-label">Minimum Marks</label>
+                    <input type="number" class="form-control" id="minimum_marks" name="minimum_marks" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="marks_obtained" class="form-label">Marks Obtained</label>
+                    <input type="number" class="form-control" id="marks_obtained" name="marks_obtained" required>
+                </div>
+            </div>
+            <div class="text-center">
+                <button type="submit" class="btn-insert">Insert</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Update Form -->
+    <div class="calculator-form mt-4">
+        <h3 class="mb-3">Update Result</h3>
+        <form method="POST" action="{{ url_for('update_result', student_name=student_name) }}">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="update_subject" class="form-label">Subject Name</label>
+                    <input type="text" class="form-control" id="update_subject" name="subject" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="update_type" class="form-label">Exam Type</label>
+                    <select class="form-select" id="update_type" name="type" required>
+                        <option value="">Select Type</option>
+                        <option value="Internal">Internal</option>
+                        <option value="Theory">Theory</option>
+                        <option value="Practical">Practical</option>
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="update_maximum_marks" class="form-label">Maximum Marks</label>
+                    <input type="number" class="form-control" id="update_maximum_marks" name="maximum_marks" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="update_minimum_marks" class="form-label">Minimum Marks</label>
+                    <input type="number" class="form-control" id="update_minimum_marks" name="minimum_marks" required>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="update_marks_obtained" class="form-label">Marks Obtained</label>
+                    <input type="number" class="form-control" id="update_marks_obtained" name="marks_obtained" required>
+                </div>
+            </div>
+            <div class="text-center">
+                <button type="submit" class="btn-update">Update</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Delete Form -->
+    <div class="calculator-form mt-4">
+        <h3 class="mb-3">Delete Result</h3>
+        <form method="POST" action="{{ url_for('delete_result', student_name=student_name) }}">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="delete_subject" class="form-label">Subject Name</label>
+                    <input type="text" class="form-control" id="delete_subject" name="subject" required>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="delete_type" class="form-label">Exam Type</label>
+                    <select class="form-select" id="delete_type" name="type" required>
+                        <option value="">Select Type</option>
+                        <option value="Internal">Internal</option>
+                        <option value="Theory">Theory</option>
+                        <option value="Practical">Practical</option>
+                    </select>
+                </div>
+            </div>
+            <div class="text-center">
+                <button type="submit" class="btn-delete">Delete</button>
+            </div>
+        </form>
+    </div>
+    <div class="text-center">
+        <a href="{{ url_for('check_result', roll_no=session.get('student_roll_no'), student_name=session.get('student_name')) }}" class="btn-show">Show Result</a>
+    </div>
+</div>
+{% endblock %} 

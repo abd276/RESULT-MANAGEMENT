@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+
+{% block title %}Student Results - Result Management System{% endblock %}
+
+{% block additional_styles %}
+.results-container {
+    padding: 2rem 0;
+}
+
+.results-header {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.btn-back {
+    background-color: #6c757d;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    margin-right: 1rem;
+}
+
+.btn-back:hover {
+    background-color: #5a6268;
+    color: white;
+}
+
+.btn-logout {
+    background-color: #dc3545;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    margin-left: 1rem;
+}
+
+.btn-logout:hover {
+    background-color: #c82333;
+    color: white;
+}
+
+.btn-modify {
+    background-color: #28a745;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn-modify:hover {
+    background-color: #218838;
+    color: white;
+}
+
+.btn-calculate {
+    background-color: #007bff;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-size: 1.1rem;
+    font-weight: 500;
+    min-width: 150px;
+    margin-top: 1rem;
+}
+
+.btn-calculate:hover {
+    background-color: #0056b3;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.results-table {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    min-width: 300px;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    animation: slideIn 0.5s ease-out;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.course-name {
+    color: #1a237e;
+    font-size: 1.8rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid #e0e0e0;
+}
+{% endblock %}
+
+{% block content %}
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}">Tech Excellence College</a>
+        <div class="d-flex">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn-back">Back to Dashboard</a>
+            <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}" role="alert">
+                {{ message }}
+                <button type="button" class="close" onclick="this.parentElement.style.display='none'" style="float: right; background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="container results-container">
+    <div class="results-header">
+        <h1>Results for {{ student_name }}</h1>
+        <p class="text-muted">View and manage student results</p>
+    </div>
+    
+    <div class="results-table">
+        <h2 class="course-name mb-4">Course: {{ course_name }}</h2>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Type</th>
+                        <th>Maximum Marks</th>
+                        <th>Minimum Marks</th>
+                        <th>Marks Obtained</th>
+                        <th>Remarks</th>
+                        <th>Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in results %}
+                    <tr>
+                        <td>{{ result.subject }}</td>
+                        <td>{{ result.type }}</td>
+                        <td>{{ result.maximum_marks }}</td>
+                        <td>{{ result.minimum_marks }}</td>
+                        <td>{{ result.marks_obtained }}</td>
+                        <td>{{ result.remarks }}</td>
+                        <td>{{ result.grade }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="text-center">
+        <a href="{{ url_for('result_calculator', student_name=student_name) }}" class="btn-calculate">Modify</a>
+    </div>
+
+    <div class="text-center mt-4">
+        <h4>Result: <span class="fw-bold">{{ overall_result }}</span></h4>
+        <h4>Grade: <span class="fw-bold">{{ overall_grade }}</span></h4>
+    </div>
+</div>
+{% endblock %} 
