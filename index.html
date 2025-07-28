@@ -25,6 +25,41 @@
     margin-top: 40px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
+
+.dashboard-buttons {
+    margin: 30px 0;
+    text-align: center;
+}
+
+.dashboard-buttons .btn-student {
+    background-color: #4e9af1;
+    color: white;
+    padding: 15px 30px;
+    font-size: 1.1rem;
+    margin: 10px;
+    border-radius: 8px;
+    transition: 0.3s;
+    border: none;
+}
+
+.dashboard-buttons .btn-admin {
+    background-color: #f16262;
+    color: white;
+    padding: 15px 30px;
+    font-size: 1.1rem;
+    margin: 10px;
+    border-radius: 8px;
+    transition: 0.3s;
+    border: none;
+}
+
+.dashboard-buttons .btn-student:hover {
+    background-color: #377ecc;
+}
+
+.dashboard-buttons .btn-admin:hover {
+    background-color: #d94a4a;
+}
 {% endblock %}
 
 {% block content %}
@@ -38,7 +73,7 @@
         <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
             <ul class="navbar-nav">
                 <li class="nav-item">
-                    <a class="nav-link" href="#">Student Dashboard</a>
+                    <a class="nav-link" href="{{ url_for('student_dashboard') }}">Student Dashboard</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('admin_login') }}">Admin Dashboard</a>
@@ -57,6 +92,12 @@
                 <p class="lead mb-4">Empowering students with knowledge and excellence since 1995</p>
             </div>
         </div>
+    </div>
+
+    <!-- Dashboard Button Section -->
+    <div class="dashboard-buttons">
+        <a href="{{ url_for('student_dashboard') }}" class="btn btn-student">Go to Student Dashboard</a>
+        <a href="{{ url_for('admin_login') }}" class="btn btn-admin">Go to Admin Dashboard</a>
     </div>
 
     <!-- About Section -->
