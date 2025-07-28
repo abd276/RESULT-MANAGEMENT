@@ -60,7 +60,7 @@
 }
 
 .btn-calculate {
-    background-color: #007bff;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
     color: white;
     padding: 0.75rem 1.5rem;
     border-radius: 5px;
@@ -70,10 +70,33 @@
     font-weight: 500;
     min-width: 150px;
     margin-top: 1rem;
+    border: none;
 }
 
 .btn-calculate:hover {
-    background-color: #0056b3;
+    background: linear-gradient(135deg, #218838 0%, #1ea085 100%);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-release {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-size: 1.1rem;
+    font-weight: 500;
+    min-width: 150px;
+    margin-top: 1rem;
+    margin-left: 1rem;
+    border: none;
+}
+
+.btn-release:hover {
+    background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
     color: white;
     transform: translateY(-2px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -163,30 +186,30 @@
     </div>
     
     <div class="results-table">
-        <h2 class="course-name mb-4">Course: {{ course_name }}</h2>
+        <div class="d-flex align-items-center mb-4">
+            <h2 class="course-name mb-0">Course: {{ course_name }}<span class="ms-4">Semester: {{ semester }}</span></h2>
+        </div>
         <div class="table-responsive">
             <table class="table table-striped">
                 <thead>
                     <tr>
-                        <th>Subject</th>
-                        <th>Type</th>
+                        <th>Subject Name</th>
+                        <th>Exam Type</th>
                         <th>Maximum Marks</th>
                         <th>Minimum Marks</th>
                         <th>Marks Obtained</th>
                         <th>Remarks</th>
-                        <th>Grade</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for result in results %}
                     <tr>
-                        <td>{{ result.subject }}</td>
-                        <td>{{ result.type }}</td>
+                        <td>{{ result.subject_name }}</td>
+                        <td>{{ result.exam_type }}</td>
                         <td>{{ result.maximum_marks }}</td>
                         <td>{{ result.minimum_marks }}</td>
                         <td>{{ result.marks_obtained }}</td>
                         <td>{{ result.remarks }}</td>
-                        <td>{{ result.grade }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -195,12 +218,81 @@
     </div>
 
     <div class="text-center">
-        <a href="{{ url_for('result_calculator', student_name=student_name) }}" class="btn-calculate">Modify</a>
+        <a href="{{ url_for('result_calculator', roll_no=roll_no) }}" class="btn-calculate">Modify</a>
+        <form method="POST" action="{{ url_for('release_result', roll_no=roll_no) }}" style="display: inline;">
+            <button type="submit" class="btn-release">Release Result</button>
+        </form>
+
+        <!-- Upload CSV button -->
+        <form method="POST" action="{{ url_for('upload_csv') }}" enctype="multipart/form-data" style="display: inline;">
+            <label for="csvFile" class="btn-release" style="cursor: pointer;">Upload CSV</label>
+            <input type="file" name="csvFile" id="csvFile" accept=".csv" style="display: none;" onchange="this.form.submit()">
+        </form>
     </div>
+
+    <!-- Show Uploaded CSV Data if present -->
+    {% if csv_data %}
+    <div class="results-table mt-5">
+        <h3>Uploaded CSV Preview</h3>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        {% for header in csv_data[0].keys() %}
+                        <th>{{ header }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in csv_data %}
+                    <tr>
+                        {% for value in row.values() %}
+                        <td>{{ value }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="text-center mt-4">
         <h4>Result: <span class="fw-bold">{{ overall_result }}</span></h4>
-        <h4>Grade: <span class="fw-bold">{{ overall_grade }}</span></h4>
+        <h4>Percentage: <span class="fw-bold">{{ percentage }}</span></h4>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modifyButton = document.querySelector('.btn-calculate');
+    const rollNo = '{{ roll_no }}';
+    
+    modifyButton.addEventListener('click', function(e) {
+        e.preventDefault(); // Prevent default navigation
+        
+        // Check if released result table exists
+        fetch(`/check-released-result/${rollNo}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.released_result_exists) {
+                    const confirmed = confirm('Do you want to modify it after releasing it?');
+                    if (confirmed) {
+                        // User clicked Yes, navigate to result calculator
+                        window.location.href = `/result-calculator/${rollNo}`;
+                    }
+                    // If user clicked No, do nothing (stay on current page)
+                } else {
+                    // No released result exists, navigate directly
+                    window.location.href = `/result-calculator/${rollNo}`;
+                }
+            })
+            .catch(error => {
+                console.error('Error checking released result:', error);
+                // Proceed normally if there's an error
+                window.location.href = `/result-calculator/${rollNo}`;
+            });
+    });
+});
+</script>
 {% endblock %} 
