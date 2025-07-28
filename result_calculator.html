@@ -56,6 +56,7 @@
     font-weight: 500;
     min-width: 100px;
     margin-right: 1rem;
+    border: none;
 }
 
 .btn-insert:hover {
@@ -177,7 +178,7 @@
     <div class="container">
         <a class="navbar-brand" href="{{ url_for('index') }}">Tech Excellence College</a>
         <div class="d-flex">
-            <a href="{{ url_for('results', student_name=student_name) }}" class="btn-back">Back to Results</a>
+            <a href="{{ url_for('results', roll_no=roll_no) }}" class="btn-back">Back to Results</a>
             <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
         </div>
     </div>
@@ -197,113 +198,93 @@
 
 <div class="container calculator-container">
     <div class="calculator-header">
-        <h1>Result Calculator for {{ student_name }}</h1>
+        <h1>Result Calculator for {{ roll_no }}</h1>
         <p class="text-muted">Enter subject details and calculate results</p>
     </div>
     
-    <div class="calculator-form">
-        <h3 class="mb-3">Insert Result</h3>
-        <form method="POST" action="{{ url_for('calculate_result', student_name=student_name) }}">
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="subject" class="form-label">Subject Name</label>
-                    <input type="text" class="form-control" id="subject" name="subject" required>
+    <!-- Update Result Form -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">Update Result</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST" action="{{ url_for('update_result', roll_no=roll_no) }}">
+                <input type="hidden" name="roll_no" value="{{ roll_no }}">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <label for="update_subject" class="form-label">Subject Name</label>
+                        <select class="form-select" id="update_subject" name="subject" required>
+                            <option value="">Select Subject</option>
+                            {% for subject in subjects %}
+                                <option value="{{ subject }}">{{ subject }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="update_type" class="form-label">Exam Type</label>
+                        <select class="form-select" id="update_type" name="type" required>
+                            <option value="">Select Type</option>
+                            <option value="Internal">Internal</option>
+                            <option value="Theory">Theory</option>
+                            <option value="Practical">Practical</option>
+                            <option value="Project" style="display:none;">Project</option>
+                        </select>
+                    </div>
                 </div>
-                <div class="col-md-6 mb-3">
-                    <label for="type" class="form-label">Exam Type</label>
-                    <select class="form-select" id="type" name="type" required>
-                        <option value="">Select Type</option>
-                        <option value="Internal">Internal</option>
-                        <option value="Theory">Theory</option>
-                        <option value="Practical">Practical</option>
-                    </select>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label for="update_marks_obtained" class="form-label">Marks Obtained</label>
+                        <input type="number" class="form-control" id="update_marks_obtained" name="marks_obtained" required>
+                    </div>
                 </div>
-            </div>
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <label for="maximum_marks" class="form-label">Maximum Marks</label>
-                    <input type="number" class="form-control" id="maximum_marks" name="maximum_marks" required>
+                <div class="text-center">
+                    <button type="submit" class="btn-update">Update</button>
                 </div>
-                <div class="col-md-4 mb-3">
-                    <label for="minimum_marks" class="form-label">Minimum Marks</label>
-                    <input type="number" class="form-control" id="minimum_marks" name="minimum_marks" required>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label for="marks_obtained" class="form-label">Marks Obtained</label>
-                    <input type="number" class="form-control" id="marks_obtained" name="marks_obtained" required>
-                </div>
-            </div>
-            <div class="text-center">
-                <button type="submit" class="btn-insert">Insert</button>
-            </div>
-        </form>
+            </form>
+        </div>
     </div>
-
-    <!-- Update Form -->
-    <div class="calculator-form mt-4">
-        <h3 class="mb-3">Update Result</h3>
-        <form method="POST" action="{{ url_for('update_result', student_name=student_name) }}">
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="update_subject" class="form-label">Subject Name</label>
-                    <input type="text" class="form-control" id="update_subject" name="subject" required>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="update_type" class="form-label">Exam Type</label>
-                    <select class="form-select" id="update_type" name="type" required>
-                        <option value="">Select Type</option>
-                        <option value="Internal">Internal</option>
-                        <option value="Theory">Theory</option>
-                        <option value="Practical">Practical</option>
-                    </select>
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-4 mb-3">
-                    <label for="update_maximum_marks" class="form-label">Maximum Marks</label>
-                    <input type="number" class="form-control" id="update_maximum_marks" name="maximum_marks" required>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label for="update_minimum_marks" class="form-label">Minimum Marks</label>
-                    <input type="number" class="form-control" id="update_minimum_marks" name="minimum_marks" required>
-                </div>
-                <div class="col-md-4 mb-3">
-                    <label for="update_marks_obtained" class="form-label">Marks Obtained</label>
-                    <input type="number" class="form-control" id="update_marks_obtained" name="marks_obtained" required>
-                </div>
-            </div>
-            <div class="text-center">
-                <button type="submit" class="btn-update">Update</button>
-            </div>
-        </form>
+    <div class="results-table mt-4">
+        <table class="table table-bordered">
+            <tr>
+                <th>Result</th>
+                <td>{{ overall_result }}</td>
+            </tr>
+            <tr>
+                <th>Percentage</th>
+                <td>{{ percentage }}</td>
+            </tr>
+        </table>
     </div>
-
-    <!-- Delete Form -->
-    <div class="calculator-form mt-4">
-        <h3 class="mb-3">Delete Result</h3>
-        <form method="POST" action="{{ url_for('delete_result', student_name=student_name) }}">
-            <div class="row">
-                <div class="col-md-6 mb-3">
-                    <label for="delete_subject" class="form-label">Subject Name</label>
-                    <input type="text" class="form-control" id="delete_subject" name="subject" required>
-                </div>
-                <div class="col-md-6 mb-3">
-                    <label for="delete_type" class="form-label">Exam Type</label>
-                    <select class="form-select" id="delete_type" name="type" required>
-                        <option value="">Select Type</option>
-                        <option value="Internal">Internal</option>
-                        <option value="Theory">Theory</option>
-                        <option value="Practical">Practical</option>
-                    </select>
-                </div>
-            </div>
-            <div class="text-center">
-                <button type="submit" class="btn-delete">Delete</button>
-            </div>
-        </form>
-    </div>
-    <div class="text-center">
-        <a href="{{ url_for('check_result', roll_no=session.get('student_roll_no'), student_name=session.get('student_name')) }}" class="btn-show">Show Result</a>
+    <div class="text-center mt-4">
+        <a href="{{ url_for('results', roll_no=roll_no) }}" class="btn-show">Show Result</a>
     </div>
 </div>
+
+{% block additional_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const subjectSelect = document.getElementById('update_subject');
+        const examTypeSelect = document.getElementById('update_type');
+        const projectOption = Array.from(examTypeSelect.options).find(opt => opt.value === 'Project');
+
+        function toggleExamType() {
+            if (subjectSelect.value === 'Project Implementaion') {
+                projectOption.style.display = '';
+                examTypeSelect.value = 'Project';
+                examTypeSelect.disabled = true;
+            } else {
+                projectOption.style.display = 'none';
+                examTypeSelect.disabled = false;
+                if (examTypeSelect.value === 'Project') {
+                    examTypeSelect.value = '';
+                }
+            }
+        }
+
+        subjectSelect.addEventListener('change', toggleExamType);
+        // Ensure correct state on page load
+        toggleExamType();
+    });
+</script>
+{% endblock %}
 {% endblock %} 
