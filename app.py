@@ -1028,5 +1028,47 @@ def init_db():
 # Initialize database
 init_db()
 
+@app.route('/performance', methods=['GET', 'POST'])
+@admin_required
+def performance():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    # Fetch all student result data by default
+    cursor.execute("SELECT * FROM student_result_data")
+    student_result_data = cursor.fetchall()
+
+    trend_data = None
+    student_name = None
+    year = None
+
+    if request.method == 'POST':
+        student_name = request.form['student_name']
+        year = request.form['year']
+
+        # Fetch trend data for the given student and year
+        cursor.execute(
+            "SELECT semester, percentage FROM student_result_data WHERE name = %s AND year <= %s ORDER BY year, semester",
+            (student_name, year)
+        )
+        results = cursor.fetchall()
+
+        if results:
+            trend_data = {
+                'semesters': [f"{row['semester']}" for row in results],
+                'percentages': [float(row['percentage'].strip('%')) for row in results if row['percentage'] != '-']
+            }
+
+    cursor.close()
+    conn.close()
+
+    return render_template(
+        'performance.html',
+        student_result_data=student_result_data,
+        trend_data=trend_data,
+        student_name=student_name,
+        year=year
+    )
+
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(debug=True)
