@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+
+{% block title %}Student Performance - Result Management System{% endblock %}
+
+{% block additional_styles %}
+.performance-container {
+    padding: 2rem 0;
+}
+.input-section {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+.table-section {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+#trendChart {
+    width: 100% !important;
+    max-width: 800px;
+    height: 400px !important;
+    margin: 0 auto;
+    background: #f8f9fa;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+.btn-perf {
+    background: linear-gradient(90deg, #00c6ff 0%, #0072ff 100%);
+    color: #fff;
+    font-weight: bold;
+    border-radius: 30px;
+    box-shadow: 0 4px 12px rgba(0,114,255,0.15);
+    padding: 0.5rem 2rem;
+    font-size: 1.1rem;
+    transition: background 0.3s;
+}
+.btn-perf:hover {
+    background: linear-gradient(90deg, #0072ff 0%, #00c6ff 100%);
+    color: #fff;
+}
+{% endblock %}
+
+{% block content %}
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}">Tech Excellence College</a>
+        <div class="d-flex">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-danger">Back to Dashboard</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container performance-container">
+    <div class="input-section">
+        <h2 class="mb-4">Check Student Performance</h2>
+        <form method="POST" action="{{ url_for('performance') }}">
+            <div class="row">
+                <div class="col-md-5 mb-3">
+                    <label for="student_name" class="form-label">Student Name</label>
+                    <input type="text" class="form-control" id="student_name" name="student_name" value="{{ student_name|default('') }}" required>
+                </div>
+                <div class="col-md-5 mb-3">
+                    <label for="year" class="form-label">Year</label>
+                    <input type="number" class="form-control" id="year" name="year" value="{{ year|default('') }}" required>
+                </div>
+            </div>
+            <div class="text-center mt-3">
+                <button type="submit" class="btn btn-primary">Show Trend</button>
+            </div>
+        </form>
+    </div>
+    {% if trend_data %}
+    <div class="mb-5">
+        <canvas id="trendChart"></canvas>
+    </div>
+    {% endif %}
+    {% if student_result_data %}
+    <div class="table-section">
+        <h4>Student Result Data</h4>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Roll No</th>
+                        <th>Name</th>
+                        <th>Year</th>
+                        <th>Semester</th>
+                        <th>Percentage</th>
+                        <th>Created At</th>
+                        <th>Updated At</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in student_result_data %}
+                    <tr>
+                        <td>{{ row.roll_no }}</td>
+                        <td>{{ row.name }}</td>
+                        <td>{{ row.year }}</td>
+                        <td>{{ row.semester }}</td>
+                        <td>{{ row.percentage }}</td>
+                        <td>{{ row.created_at }}</td>
+                        <td>{{ row.updated_at }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    {% if trend_data %}
+    const ctx = document.getElementById('trendChart').getContext('2d');
+    const trendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: {{ trend_data.semesters | safe }},
+            datasets: [{
+                label: 'Percentage',
+                data: {{ trend_data.percentages | safe }},
+                fill: false,
+                borderColor: '#0072ff',
+                backgroundColor: '#00c6ff',
+                tension: 0.2,
+                pointRadius: 6,
+                pointBackgroundColor: '#0072ff',
+                pointBorderColor: '#fff',
+                pointHoverRadius: 8,
+                pointHoverBackgroundColor: '#00c6ff',
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Semester-wise Performance Trend'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 100,
+                    title: {
+                        display: true,
+                        text: 'Percentage (%)'
+                    }
+                },
+                x: {
+                    title: {
+                        display: true,
+                        text: 'Semester'
+                    }
+                }
+            }
+        }
+    });
+    {% endif %}
+</script>
+{% endblock %}
