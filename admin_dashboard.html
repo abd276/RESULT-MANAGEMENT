@@ -78,6 +78,24 @@
         opacity: 1;
     }
 }
+
+.btn-performance {
+    background: linear-gradient(90deg, #ff7e5f 0%, #feb47b 100%);
+    color: #fff;
+    font-weight: bold;
+    border-radius: 30px;
+    box-shadow: 0 4px 12px rgba(255, 126, 95, 0.3);
+    padding: 0.75rem 2.5rem;
+    font-size: 1.25rem;
+    transition: transform 0.3s, background 0.3s;
+    text-decoration: none;
+}
+
+.btn-performance:hover {
+    background: linear-gradient(90deg, #feb47b 0%, #ff7e5f 100%);
+    transform: scale(1.05);
+    text-decoration: none;
+}
 {% endblock %}
 
 {% block content %}
@@ -274,5 +292,11 @@
             </table>
         </div>
     </div>
+        <!-- Check Student Performance Button -->
+        <div class="mt-4 text-center">
+            <a href="{{ url_for('performance') }}" class="btn btn-lg btn-performance">
+                <i class="fas fa-chart-line" style="margin-right: 8px;"></i> Check Student Performance
+            </a>
+        </div>
 </div>
 {% endblock %}
