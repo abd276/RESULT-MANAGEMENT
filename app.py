@@ -1,5 +1,6 @@
 import io
 import csv
+import json
 from flask import Flask, render_template, request, redirect, url_for, flash, session, jsonify
 from functools import wraps
 import mysql.connector
@@ -494,12 +495,19 @@ def delete_result(roll_no):
 @admin_required
 def release_result(roll_no):
     try:
+        # CSV release logic: if CSV uploaded for this roll_no, just show success and do not check marks table
+        if session.get('csv_uploaded_for_release') == roll_no:
+            flash('Result released successfully from CSV!', 'success')
+            session.pop('csv_uploaded_for_release', None)
+            # Do NOT pop csv_data here, so student can see it
+            return redirect(url_for('results', roll_no=roll_no))
+
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         table_name = str(roll_no)
         result_table = f"{roll_no}_result"
 
-        # Get all subjects and their exam types
+        # ...existing code for normal release (no CSV)...
         cursor.execute(f"SELECT subject_name, exam_type, marks_obtained, remarks FROM `{table_name}`")
         rows = cursor.fetchall()
         if not rows:
@@ -508,7 +516,6 @@ def release_result(roll_no):
             conn.close()
             return redirect(url_for('results', roll_no=roll_no))
 
-        # Organize data by subject
         subjects = {}
         for row in rows:
             subj = row['subject_name']
@@ -525,7 +532,6 @@ def release_result(roll_no):
             subjects[subj][etype] = marks
             subjects[subj]['remarks'][etype] = remark
 
-        # Create result table
         cursor.execute(f"""
             CREATE TABLE IF NOT EXISTS `{result_table}` (
                 subject VARCHAR(100) NOT NULL,
@@ -538,7 +544,6 @@ def release_result(roll_no):
         """)
         cursor.execute(f"DELETE FROM `{result_table}`")
 
-        # Create permanent student result data table
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS student_result_data (
                 roll_no VARCHAR(20) NOT NULL,
@@ -551,7 +556,6 @@ def release_result(roll_no):
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         """)
 
-        # Calculate overall result and percentage from original table
         cursor.execute(f"SELECT * FROM `{table_name}`")
         original_results = cursor.fetchall()
         
@@ -571,12 +575,10 @@ def release_result(roll_no):
         else:
             percentage = '-'
 
-        # Get student info for permanent storage
         cursor.execute("SELECT name, semester FROM student_info WHERE roll_no = %s", (roll_no,))
         student_info = cursor.fetchone()
         current_year = datetime.now().year
 
-        # Store or update in permanent table
         cursor.execute("""
             INSERT INTO student_result_data (roll_no, name, year, semester, percentage) 
             VALUES (%s, %s, %s, %s, %s)
@@ -616,99 +618,42 @@ def release_result(roll_no):
             conn.rollback()
             cursor.close()
             conn.close()
-        return redirect(url_for('results', roll_no=roll_no)
-        )
+        return redirect(url_for('results', roll_no=roll_no))
     
 @app.route('/upload-csv', methods=['POST'])
 def upload_csv():
     roll_no = request.args.get('roll_no')
     student_name = request.args.get('student_name')
-    # If no roll_no and student_name in args, try to get from session
     if not roll_no and not student_name:
         roll_no = session.get('student_roll_no')
         student_name = session.get('student_name')
-    
+
     if not roll_no:
         flash('Please enter Roll No', 'error')
         return redirect(url_for('admin_dashboard'))
-        
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        
-        # First check if student exists in student_info
         cursor.execute("SELECT name, course, semester FROM student_info WHERE roll_no = %s", (roll_no,))
         student = cursor.fetchone()
-        
         if not student:
             flash('Student not found with the given Roll No', 'error')
             cursor.close()
             conn.close()
-            student_name = ''  # Ensure student_name is defined
+            student_name = ''
             return redirect(url_for('admin_dashboard'))
-        
-        # Get the student's name from student_info to ensure we use the correct name
         student_name = student['name']
-        
-        # Create table name from student's name
         table_name = str(roll_no)
-        
-        # Create table if it doesn't exist
-        cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS `{table_name}` (
-                subject VARCHAR(100) NOT NULL,
-                type VARCHAR(50) NOT NULL,
-                maximum_marks INT NOT NULL,
-                minimum_marks INT NOT NULL,
-                marks_obtained INT NOT NULL,
-                remarks TEXT,
-                grade VARCHAR(2) NOT NULL
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-        """)
-        conn.commit()
-        
-        # Get results from student's table
-        cursor.execute(f"""
-            SELECT * FROM `{table_name}`
-            ORDER BY
-                CASE exam_type
-                    WHEN 'Internal' THEN 1
-                    WHEN 'Theory' THEN 2
-                    WHEN 'Practical' THEN 3
-                    WHEN 'Project' THEN 4
-                    ELSE 5
-                END
-        """)
-        results = cursor.fetchall()
-
-        # Calculate overall result and percentage
-        overall_result = 'Pass'
-        total_marks_obtained = 0
-        total_maximum_marks = 0
-        for row in results:
-            if row['remarks'] != 'Pass' and row['remarks'] is not None:
-                overall_result = 'Fail'
-            if row['marks_obtained'] is not None:
-                total_marks_obtained += row['marks_obtained']
-            total_maximum_marks += row['maximum_marks']
-        
-        if overall_result == 'Pass' and total_maximum_marks > 0:
-            percentage = f"{(total_marks_obtained / total_maximum_marks) * 100:.2f}%"
-        else:
-            percentage = '-'
-
         cursor.close()
         conn.close()
-
     except Exception as e:
         flash(f'Error fetching results: {str(e)}', 'error')
         if 'conn' in locals():
             cursor.close()
             conn.close()
         return redirect(url_for('admin_dashboard'))
-        
-        # In results route, always show IT as course
-        
+
     file = request.files.get('csvFile')
     if not file or not file.filename.endswith('.csv'):
         flash("Please upload a valid CSV file.", "error")
@@ -719,17 +664,30 @@ def upload_csv():
         reader = csv.DictReader(stream)
         csv_data = list(reader)
 
-        return render_template('results.html',  # update this to your actual filename
-            student_name=student_name,
-            course_name='IT', 
-            semester=student['semester'],
-            overall_result=overall_result,
-            percentage=percentage,
-            roll_no=roll_no,
-            csv_data=csv_data)
+        # Store CSV data permanently in DB
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS student_csv_results (
+                roll_no VARCHAR(20) PRIMARY KEY,
+                data LONGTEXT NOT NULL,
+                uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        """)
+        # Upsert CSV data
+        cursor.execute("""
+            INSERT INTO student_csv_results (roll_no, data)
+            VALUES (%s, %s)
+            ON DUPLICATE KEY UPDATE data = VALUES(data), uploaded_at = CURRENT_TIMESTAMP
+        """, (roll_no, json.dumps(csv_data)))
+        conn.commit()
+        cursor.close()
+        conn.close()
 
+        flash('CSV uploaded and saved successfully!', 'success')
+        return redirect(url_for('results', roll_no=roll_no, student_name=student_name))
     except Exception as e:
-        flash(f'Error reading CSV: {str(e)}', 'error')
+        flash(f'Error reading or saving CSV: {str(e)}', 'error')
         return redirect(request.referrer)
 
 
@@ -885,7 +843,7 @@ def student_login():
     if request.method == 'POST':
         roll_no = request.form['roll_no']
         dob = request.form['dob']
-        
+
         try:
             conn = get_db_connection()
             cursor = conn.cursor(dictionary=True)
@@ -893,7 +851,7 @@ def student_login():
             student = cursor.fetchone()
             cursor.close()
             conn.close()
-            
+
             if student:
                 session['student_authenticated'] = True
                 session['student_roll_no'] = roll_no
@@ -902,30 +860,83 @@ def student_login():
                 error = 'Invalid roll number or date of birth'
         except Exception as e:
             error = 'Error during login'
-    
+
     return render_template('student_login.html', error=error)
 
 @app.route('/student-dashboard')
 def student_dashboard():
     if 'student_authenticated' not in session:
         return redirect(url_for('student_login'))
-    
+
     roll_no = session.get('student_roll_no')
     if not roll_no:
         return redirect(url_for('student_login'))
-    
+
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        
+
         # Get student info
         cursor.execute("SELECT * FROM student_info WHERE roll_no = %s", (roll_no,))
         student = cursor.fetchone()
-        
+
         if not student:
             flash('Student not found', 'error')
             return redirect(url_for('student_login'))
-        
+
+        # First, check if released result exists (give it priority)
+        result_table = f"{roll_no}_result"
+        cursor.execute(f"SHOW TABLES LIKE '{result_table}'")
+        if cursor.fetchone():
+            # Get released results
+            cursor.execute(f"SELECT * FROM `{result_table}`")
+            released_results = cursor.fetchall()
+            # Calculate overall result and percentage from original table (same as results page)
+            table_name = str(roll_no)
+            cursor.execute(f"SELECT * FROM `{table_name}`")
+            original_results = cursor.fetchall()
+            overall_result = 'Pass'
+            total_marks_obtained = 0
+            total_maximum_marks = 0
+            for row in original_results:
+                if row['remarks'] != 'Pass' and row['remarks'] is not None:
+                    overall_result = 'Fail'
+                if row['marks_obtained'] is not None:
+                    total_marks_obtained += row['marks_obtained']
+                total_maximum_marks += row['maximum_marks']
+            if overall_result == 'Pass' and total_maximum_marks > 0:
+                percentage = f"{(total_marks_obtained / total_maximum_marks) * 100:.2f}%"
+            else:
+                percentage = '-'
+            cursor.close()
+            conn.close()
+            return render_template('student_dashboard.html',
+                                 student=student,
+                                 results=released_results,
+                                 overall_result=overall_result,
+                                 percentage=percentage,
+                                 total_marks_obtained=total_marks_obtained)
+        # If no released result, check for CSV result
+        conn2 = get_db_connection()
+        cursor2 = conn2.cursor(dictionary=True)
+        cursor2.execute("""
+            CREATE TABLE IF NOT EXISTS student_csv_results (
+                roll_no VARCHAR(20) PRIMARY KEY,
+                data LONGTEXT NOT NULL,
+                uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        """)
+        cursor2.execute("SELECT data FROM student_csv_results WHERE roll_no = %s", (roll_no,))
+        csv_row = cursor2.fetchone()
+        cursor2.close()
+        conn2.close()
+        if csv_row:
+            csv_data = json.loads(csv_row['data'])
+            return render_template('student_dashboard_csv.html', student=student, csv_data=csv_data)
+        # If neither, show error
+        flash('No released result found for this student', 'error')
+        return redirect(url_for('student_login'))
+
         # Check if released result exists
         result_table = f"{roll_no}_result"
         cursor.execute(f"SHOW TABLES LIKE '{result_table}'")
@@ -934,42 +945,42 @@ def student_dashboard():
             cursor.close()
             conn.close()
             return redirect(url_for('student_login'))
-        
+
         # Get released results
         cursor.execute(f"SELECT * FROM `{result_table}`")
         released_results = cursor.fetchall()
-        
+
         # Calculate overall result and percentage from original table (same as results page)
         table_name = str(roll_no)
         cursor.execute(f"SELECT * FROM `{table_name}`")
         original_results = cursor.fetchall()
-        
+
         overall_result = 'Pass'
         total_marks_obtained = 0
         total_maximum_marks = 0
-        
+
         for row in original_results:
             if row['remarks'] != 'Pass' and row['remarks'] is not None:
                 overall_result = 'Fail'
             if row['marks_obtained'] is not None:
                 total_marks_obtained += row['marks_obtained']
             total_maximum_marks += row['maximum_marks']
-        
+
         if overall_result == 'Pass' and total_maximum_marks > 0:
             percentage = f"{(total_marks_obtained / total_maximum_marks) * 100:.2f}%"
         else:
             percentage = '-'
-        
+
         cursor.close()
         conn.close()
-        
-        return render_template('student_dashboard.html', 
-                             student=student, 
+
+        return render_template('student_dashboard.html',
+                             student=student,
                              results=released_results,
                              overall_result=overall_result,
                              percentage=percentage,
                              total_marks_obtained=total_marks_obtained)
-        
+
     except Exception as e:
         flash(f'Error loading dashboard: {str(e)}', 'error')
         return redirect(url_for('student_login'))
