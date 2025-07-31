@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Dashboard - Result Management System{% endblock %}
+{% block title %}Student Dashboard - Result Management System{% endblock %}
 
 {% block additional_styles %}
 .dashboard-container {
@@ -29,7 +29,7 @@
     color: white;
 }
 
-.student-form {
+.student-info {
     background: white;
     padding: 2rem;
     border-radius: 10px;
@@ -37,11 +37,12 @@
     margin-bottom: 2rem;
 }
 
-.student-table {
+.results-table {
     background: white;
     padding: 2rem;
     border-radius: 10px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
 }
 
 .alert {
@@ -78,24 +79,6 @@
         opacity: 1;
     }
 }
-
-.btn-performance {
-    background: linear-gradient(90deg, #ff7e5f 0%, #feb47b 100%);
-    color: #fff;
-    font-weight: bold;
-    border-radius: 30px;
-    box-shadow: 0 4px 12px rgba(255, 126, 95, 0.3);
-    padding: 0.75rem 2.5rem;
-    font-size: 1.25rem;
-    transition: transform 0.3s, background 0.3s;
-    text-decoration: none;
-}
-
-.btn-performance:hover {
-    background: linear-gradient(90deg, #feb47b 0%, #ff7e5f 100%);
-    transform: scale(1.05);
-    text-decoration: none;
-}
 {% endblock %}
 
 {% block content %}
@@ -104,7 +87,7 @@
     <div class="container">
         <a class="navbar-brand" href="{{ url_for('index') }}">Tech Excellence College</a>
         <div class="d-flex">
-            <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+            <a href="{{ url_for('student_logout') }}" class="btn-logout">Logout</a>
         </div>
     </div>
 </nav>
@@ -123,180 +106,59 @@
 
 <div class="container dashboard-container">
     <div class="dashboard-header">
-        <h1>Welcome to Admin Dashboard</h1>
-        <p class="text-muted">Manage student results and college information</p>
+        <h1>Student Result</h1>
+        <p class="text-muted">View your academic results</p>
     </div>
     
-    <!-- Add Student Form -->
-    <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Add Student Details</h5>
-        </div>
-        <div class="card-body">
-            <form method="POST" action="{{ url_for('add_student') }}">
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <label for="roll_no" class="form-label">Roll No</label>
-                        <input type="text" class="form-control" id="roll_no" name="roll_no" value="{{ form_data.roll_no if form_data else '' }}" required>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="name" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="name" name="name" value="{{ form_data.name if form_data else '' }}" required>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="dob" class="form-label">Date of Birth</label>
-                        <input type="date" class="form-control" id="dob" name="dob" value="{{ form_data.dob if form_data else '' }}" required>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="semester" class="form-label">Semester</label>
-                        <select class="form-select" id="semester" name="semester" required>
-                            <option value="">Select Semester</option>
-                            <option value="1" {% if form_data and form_data.semester == '1' %}selected{% endif %}>1</option>
-                            <option value="2" {% if form_data and form_data.semester == '2' %}selected{% endif %}>2</option>
-                            <option value="3" {% if form_data and form_data.semester == '3' %}selected{% endif %}>3</option>
-                            <option value="4" {% if form_data and form_data.semester == '4' %}selected{% endif %}>4</option>
-                            <option value="5" {% if form_data and form_data.semester == '5' %}selected{% endif %}>5</option>
-                            <option value="6" {% if form_data and form_data.semester == '6' %}selected{% endif %}>6</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <button type="submit" class="btn btn-primary">Add Student</button>
-                    </div>
-                </div>
-            </form>
+    <div class="student-info">
+        <div class="row">
+            <div class="col-md-6">
+                <h4>Student Information</h4>
+                <p><strong>Roll No:</strong> {{ student.roll_no }}</p>
+                <p><strong>Name:</strong> {{ student.name }}</p>
+            </div>
+            <div class="col-md-6">
+                <h4>Academic Details</h4>
+                <p><strong>Semester:</strong> {{ student.semester }}</p>
+                <p><strong>Course:</strong> {{ student.course }}</p>
+            </div>
         </div>
     </div>
-
-    <!-- Update Student Form -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Update Student Details</h5>
-        </div>
-        <div class="card-body">
-            <form action="{{ url_for('update_student') }}" method="POST">
-                <div class="row">
-                    <div class="col-md-3 mb-3">
-                        <label for="update_roll_no" class="form-label">Roll No</label>
-                        <input type="text" class="form-control" id="update_roll_no" name="roll_no" required>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="update_name" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="update_name" name="name" required>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="update_dob" class="form-label">Date of Birth</label>
-                        <input type="date" class="form-control" id="update_dob" name="dob" required>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label for="update_semester" class="form-label">Semester</label>
-                        <select class="form-select" id="update_semester" name="semester" required>
-                            <option value="">Select Semester</option>
-                            <option value="1">1</option>
-                            <option value="2">2</option>
-                            <option value="3">3</option>
-                            <option value="4">4</option>
-                            <option value="5">5</option>
-                            <option value="6">6</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <button type="submit" class="btn btn-warning">Update Student</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Delete Student Form -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Delete Student</h5>
-        </div>
-        <div class="card-body">
-            <form action="{{ url_for('delete_student') }}" method="POST">
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="delete_roll_no" class="form-label">Roll No</label>
-                        <input type="text" class="form-control" id="delete_roll_no" name="roll_no" required>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="delete_name" class="form-label">Name</label>
-                        <input type="text" class="form-control" id="delete_name" name="name" required>
-                    </div>
-                </div>
-                <div class="row">
-                    <div class="col-md-6">
-                        <button type="submit" class="btn btn-danger">Delete Student</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Check Result Form -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h5 class="mb-0">Check Result</h5>
-        </div>
-        <div class="card-body">
-            <form action="{{ url_for('check_result') }}" method="POST">
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="roll_no">Roll No</label>
-                            <input type="text" class="form-control" id="roll_no" name="roll_no" required>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-group">
-                            <label for="name">Student Name</label>
-                            <input type="text" class="form-control" id="name" name="name" required>
-                        </div>
-                    </div>
-                </div>
-                <div class="mt-3">
-                    <button type="submit" class="btn btn-primary">Check Result</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="student-table">
-        <h2>Student List</h2>
+    
+    <div class="results-table">
+        <h3>Released Results</h3>
         <div class="table-responsive">
             <table class="table table-striped">
                 <thead>
                     <tr>
-                        <th>Roll No</th>
-                        <th>Name</th>
-                        <th>Date of Birth</th>
-                        <th>Course</th>
-                        <th>Semester</th>
+                        <th>Subject</th>
+                        <th>Internal</th>
+                        <th>Theory</th>
+                        <th>Practical</th>
+                        <th>Total</th>
+                        <th>Remarks</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for student in students %}
+                    {% for result in results %}
                     <tr>
-                        <td>{{ student.roll_no }}</td>
-                        <td>{{ student.name }}</td>
-                        <td>{{ student.dob }}</td>
-                        <td>{{ student.course }}</td>
-                        <td>{{ student.semester }}</td>
+                        <td>{{ result.subject }}</td>
+                        <td>{{ result.internal }}</td>
+                        <td>{{ result.theory }}</td>
+                        <td>{{ result.practical }}</td>
+                        <td>{{ result.total }}</td>
+                        <td>{{ result.remarks }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
-    </div>
-        <!-- Check Student Performance Button -->
-        <div class="mt-4 text-center">
-            <a href="{{ url_for('performance') }}" class="btn btn-lg btn-performance">
-                <i class="fas fa-chart-line" style="margin-right: 8px;"></i> Check Student Performance
-            </a>
+        
+        <div class="text-center mt-4">
+            <h4>Marks: <span class="fw-bold">{{ total_marks_obtained }} / 750</span></h4>
+            <h4>Result: <span class="fw-bold">{{ overall_result }}</span></h4>
+            <h4>Percentage: <span class="fw-bold">{{ percentage }}</span></h4>
         </div>
+    </div>
 </div>
-{% endblock %}
+{% endblock %} 
