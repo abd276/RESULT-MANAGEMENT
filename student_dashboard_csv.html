@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Student Dashboard - Result Management System{% endblock %}
+
+{% block additional_styles %}
+.dashboard-container {
+    padding: 2rem 0;
+}
+
+.dashboard-header {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.btn-logout {
+    background-color: #dc3545;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn-logout:hover {
+    background-color: #c82333;
+    color: white;
+}
+
+.student-info {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.results-table {
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.alert {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    min-width: 300px;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    animation: slideIn 0.5s ease-out;
+}
+
+.alert-error {
+    background-color: #f8d7da;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+.alert-success {
+    background-color: #d4edda;
+    border: 1px solid #c3e6cb;
+    color: #155724;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+{% endblock %}
+
+{% block content %}
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}">Tech Excellence College</a>
+        <div class="d-flex">
+            <a href="{{ url_for('student_logout') }}" class="btn-logout">Logout</a>
+        </div>
+    </div>
+</nav>
+
+<!-- Flash Messages -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }}" role="alert">
+                {{ message }}
+                <button type="button" class="close" onclick="this.parentElement.style.display='none'" style="float: right; background: none; border: none; font-size: 1.5rem; cursor: pointer;">&times;</button>
+            </div>
+        {% endfor %}
+    {% endif %}
+{% endwith %}
+
+<div class="container dashboard-container">
+    <div class="dashboard-header">
+        <h1>Student Result</h1>
+        <p class="text-muted">View your academic results</p>
+    </div>
+    
+    <div class="student-info">
+        <div class="row">
+            <div class="col-md-6">
+                <h4>Student Information</h4>
+                <p><strong>Roll No:</strong> {{ student.roll_no }}</p>
+                <p><strong>Name:</strong> {{ student.name }}</p>
+            </div>
+            <div class="col-md-6">
+                <h4>Academic Details</h4>
+                <p><strong>Semester:</strong> {{ student.semester }}</p>
+                <p><strong>Course:</strong> {{ student.course }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="results-table">
+        <h3>Result</h3>
+        <div class="table-responsive">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        {% for header in csv_data[0].keys() %}
+                        <th>{{ header }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in csv_data %}
+                    <tr>
+                        {% for value in row.values() %}
+                        <td>{{ value }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
