@@ -185,6 +185,13 @@
         <p class="text-muted">View and manage student results</p>
     </div>
     
+
+    <div class="text-center mb-3">
+        <form method="POST" action="{{ url_for('release_result', roll_no=roll_no) }}" style="display: inline;">
+            <button type="submit" class="btn-release">Release Result</button>
+        </form>
+    </div>
+
     <div class="results-table">
         <div class="d-flex align-items-center mb-4">
             <h2 class="course-name mb-0">Course: {{ course_name }}<span class="ms-4">Semester: {{ semester }}</span></h2>
@@ -218,11 +225,7 @@
     </div>
 
     <div class="text-center">
-        <a href="{{ url_for('result_calculator', roll_no=roll_no) }}" class="btn-calculate">Modify</a>
-        <form method="POST" action="{{ url_for('release_result', roll_no=roll_no) }}" style="display: inline;">
-            <button type="submit" class="btn-release">Release Result</button>
-        </form>
-
+        <a href="{{ url_for('result_calculator', roll_no=roll_no) }}" class="btn-calculate">Modify</a><br>
         <!-- Upload CSV button -->
         <form method="POST" action="{{ url_for('upload_csv') }}" enctype="multipart/form-data" style="display: inline;">
             <label for="csvFile" class="btn-release" style="cursor: pointer;">Upload CSV</label>
@@ -230,7 +233,7 @@
         </form>
     </div>
 
-    <!-- Show Uploaded CSV Data if present -->
+    <!-- Show Uploaded CSV Data if present (for compatibility with old logic) -->
     {% if csv_data %}
     <div class="results-table mt-5">
         <h3>Uploaded CSV Preview</h3>
@@ -245,6 +248,33 @@
                 </thead>
                 <tbody>
                     {% for row in csv_data %}
+                    <tr>
+                        {% for value in row.values() %}
+                        <td>{{ value }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Show CSV Preview at the bottom if csv_preview is present -->
+    {% if csv_preview %}
+    <div class="results-table mt-5">
+        <h3>Uploaded CSV Preview</h3>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead class="table-dark">
+                    <tr>
+                        {% for header in csv_preview[0].keys() %}
+                        <th>{{ header }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in csv_preview %}
                     <tr>
                         {% for value in row.values() %}
                         <td>{{ value }}</td>
