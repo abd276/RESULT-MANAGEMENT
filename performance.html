@@ -63,7 +63,7 @@
             <div class="row">
                 <div class="col-md-5 mb-3">
                     <label for="student_name" class="form-label">Student Name</label>
-                    <input type="text" class="form-control" id="student_name" name="student_name" value="{{ student_name|default('') }}" required>
+                    <input type="text" class="form-control" id="student_name" name="student_name" value="{{ '' if student_name is none or student_name == 'None' else student_name }}" required>
                 </div>
                 <div class="col-md-5 mb-3">
                     <label for="year" class="form-label">Year</label>
