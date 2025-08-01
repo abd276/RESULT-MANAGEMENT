@@ -1,3 +1,4 @@
+
 import io
 import csv
 import json
@@ -6,6 +7,7 @@ from functools import wraps
 import mysql.connector
 from datetime import datetime
 import re
+from markupsafe import Markup
 
 app = Flask(__name__)
 app.secret_key = 'your-secret-key-here'  # Change this to a secure secret key in production
@@ -216,38 +218,17 @@ def results():
     try:
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
-        
         # First check if student exists in student_info
         cursor.execute("SELECT name, course, semester FROM student_info WHERE roll_no = %s", (roll_no,))
         student = cursor.fetchone()
-        
         if not student:
             flash('Student not found with the given Roll No', 'error')
             cursor.close()
             conn.close()
             student_name = ''  # Ensure student_name is defined
             return redirect(url_for('admin_dashboard'))
-        
-        # Get the student's name from student_info to ensure we use the correct name
         student_name = student['name']
-        
-        # Create table name from student's name
         table_name = str(roll_no)
-        
-        # Create table if it doesn't exist
-        cursor.execute(f"""
-            CREATE TABLE IF NOT EXISTS `{table_name}` (
-                subject VARCHAR(100) NOT NULL,
-                type VARCHAR(50) NOT NULL,
-                maximum_marks INT NOT NULL,
-                minimum_marks INT NOT NULL,
-                marks_obtained INT NOT NULL,
-                remarks TEXT,
-                grade VARCHAR(2) NOT NULL
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-        """)
-        conn.commit()
-        
         # Get results from student's table
         cursor.execute(f"""
             SELECT * FROM `{table_name}`
@@ -261,7 +242,6 @@ def results():
                 END
         """)
         results = cursor.fetchall()
-
         # Calculate overall result and percentage
         overall_result = 'Pass'
         total_marks_obtained = 0
@@ -272,16 +252,32 @@ def results():
             if row['marks_obtained'] is not None:
                 total_marks_obtained += row['marks_obtained']
             total_maximum_marks += row['maximum_marks']
-        
         if overall_result == 'Pass' and total_maximum_marks > 0:
             percentage = f"{(total_marks_obtained / total_maximum_marks) * 100:.2f}%"
         else:
             percentage = '-'
-
+        # --- CSV preview logic ---
+        # Only show CSV preview if released result does NOT exist
+        csv_preview = None
+        try:
+            conn2 = get_db_connection()
+            cursor2 = conn2.cursor()
+            result_table = f"{roll_no}_result"
+            cursor2.execute(f"SHOW TABLES LIKE '{result_table}'")
+            if not cursor2.fetchone():
+                cursor2.close()
+                conn2 = get_db_connection()
+                cursor2 = conn2.cursor(dictionary=True)
+                cursor2.execute("SELECT data FROM student_csv_results WHERE roll_no = %s", (roll_no,))
+                csv_row = cursor2.fetchone()
+                if csv_row:
+                    csv_preview = json.loads(csv_row['data'])
+            cursor2.close()
+            conn2.close()
+        except Exception:
+            csv_preview = None
         cursor.close()
         conn.close()
-        
-        # In results route, always show IT as course
         return render_template('results.html', 
             student_name=student_name, 
             results=results, 
@@ -289,8 +285,9 @@ def results():
             semester=student['semester'],
             overall_result=overall_result,
             percentage=percentage,
-            roll_no=roll_no
-)
+            roll_no=roll_no,
+            csv_preview=csv_preview
+        )
 
     except Exception as e:
         flash(f'Error fetching results: {str(e)}', 'error')
@@ -495,19 +492,21 @@ def delete_result(roll_no):
 @admin_required
 def release_result(roll_no):
     try:
-        # CSV release logic: if CSV uploaded for this roll_no, just show success and do not check marks table
-        if session.get('csv_uploaded_for_release') == roll_no:
-            flash('Result released successfully from CSV!', 'success')
-            session.pop('csv_uploaded_for_release', None)
-            # Do NOT pop csv_data here, so student can see it
+        # If CSV exists for this roll_no, show success message and dashboard link, do not change any data
+        conn = get_db_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("SELECT data FROM student_csv_results WHERE roll_no = %s", (roll_no,))
+        csv_row = cursor.fetchone()
+        cursor.close()
+        conn.close()
+        if csv_row:
+            flash(Markup('Result released successfully from CSV! <a href="/student-dashboard" target="_blank">Check Student CSV Dashboard</a>'), 'success')
             return redirect(url_for('results', roll_no=roll_no))
-
+        # ...existing code for normal release (no CSV)...
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         table_name = str(roll_no)
         result_table = f"{roll_no}_result"
-
-        # ...existing code for normal release (no CSV)...
         cursor.execute(f"SELECT subject_name, exam_type, marks_obtained, remarks FROM `{table_name}`")
         rows = cursor.fetchall()
         if not rows:
@@ -515,7 +514,6 @@ def release_result(roll_no):
             cursor.close()
             conn.close()
             return redirect(url_for('results', roll_no=roll_no))
-
         subjects = {}
         for row in rows:
             subj = row['subject_name']
@@ -531,7 +529,6 @@ def release_result(roll_no):
                 subjects[subj] = {'Internal': None, 'Theory': None, 'Practical': None, 'remarks': {}}
             subjects[subj][etype] = marks
             subjects[subj]['remarks'][etype] = remark
-
         cursor.execute(f"""
             CREATE TABLE IF NOT EXISTS `{result_table}` (
                 subject VARCHAR(100) NOT NULL,
@@ -543,7 +540,6 @@ def release_result(roll_no):
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         """)
         cursor.execute(f"DELETE FROM `{result_table}`")
-
         cursor.execute("""
             CREATE TABLE IF NOT EXISTS student_result_data (
                 roll_no VARCHAR(20) NOT NULL,
@@ -555,30 +551,24 @@ def release_result(roll_no):
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         """)
-
         cursor.execute(f"SELECT * FROM `{table_name}`")
         original_results = cursor.fetchall()
-        
         overall_result = 'Pass'
         total_marks_obtained = 0
         total_maximum_marks = 0
-        
         for row in original_results:
             if row['remarks'] != 'Pass' and row['remarks'] is not None:
                 overall_result = 'Fail'
             if row['marks_obtained'] is not None:
                 total_marks_obtained += row['marks_obtained']
             total_maximum_marks += row['maximum_marks']
-        
         if overall_result == 'Pass' and total_maximum_marks > 0:
             percentage = f"{(total_marks_obtained / total_maximum_marks) * 100:.2f}%"
         else:
             percentage = '-'
-
         cursor.execute("SELECT name, semester FROM student_info WHERE roll_no = %s", (roll_no,))
         student_info = cursor.fetchone()
         current_year = datetime.now().year
-
         cursor.execute("""
             INSERT INTO student_result_data (roll_no, name, year, semester, percentage) 
             VALUES (%s, %s, %s, %s, %s)
@@ -588,7 +578,6 @@ def release_result(roll_no):
             semester = VALUES(semester), 
             percentage = VALUES(percentage)
         """, (roll_no, student_info['name'], current_year, student_info['semester'], percentage))
-
         for subject, data in subjects.items():
             internal = data.get('Internal')
             theory = data.get('Theory')
@@ -630,6 +619,23 @@ def upload_csv():
 
     if not roll_no:
         flash('Please enter Roll No', 'error')
+        return redirect(url_for('admin_dashboard'))
+
+    # Block CSV upload if released result exists
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        result_table = f"{roll_no}_result"
+        cursor.execute(f"SHOW TABLES LIKE '{result_table}'")
+        if cursor.fetchone():
+            flash('Result already released', 'error')
+            cursor.close()
+            conn.close()
+            return redirect(url_for('results', roll_no=roll_no, student_name=student_name))
+        cursor.close()
+        conn.close()
+    except Exception as e:
+        flash(f'Error checking released result: {str(e)}', 'error')
         return redirect(url_for('admin_dashboard'))
 
     try:
@@ -1056,19 +1062,28 @@ def performance():
     if request.method == 'POST':
         student_name = request.form['student_name']
         year = request.form['year']
-
-        # Fetch trend data for the given student and year
+        # Find the latest year for this student
         cursor.execute(
-            "SELECT semester, percentage FROM student_result_data WHERE name = %s AND year <= %s ORDER BY year, semester",
-            (student_name, year)
+            "SELECT MAX(year) as latest_year FROM student_result_data WHERE name = %s",
+            (student_name,)
         )
-        results = cursor.fetchall()
-
-        if results:
-            trend_data = {
-                'semesters': [f"{row['semester']}" for row in results],
-                'percentages': [float(row['percentage'].strip('%')) for row in results if row['percentage'] != '-']
-            }
+        row = cursor.fetchone()
+        latest_year = row['latest_year'] if row and row['latest_year'] else None
+        if not latest_year or str(year) != str(latest_year):
+            flash(f"Please enter the latest year for this student: {latest_year}", 'error')
+            trend_data = None
+        else:
+            # Fetch trend data for the given student and year (which is latest)
+            cursor.execute(
+                "SELECT semester, percentage FROM student_result_data WHERE name = %s AND year = %s ORDER BY semester",
+                (student_name, year)
+            )
+            results = cursor.fetchall()
+            if results:
+                trend_data = {
+                    'semesters': [f"{row['semester']}" for row in results],
+                    'percentages': [float(row['percentage'].strip('%')) for row in results if row['percentage'] != '-']
+                }
 
     cursor.close()
     conn.close()
