@@ -499,10 +499,6 @@ def release_result(roll_no):
         csv_row = cursor.fetchone()
         cursor.close()
         conn.close()
-        if csv_row:
-            flash(Markup('Result released successfully from CSV! <a href="/student-dashboard" target="_blank">Check Student CSV Dashboard</a>'), 'success')
-            return redirect(url_for('results', roll_no=roll_no))
-        # ...existing code for normal release (no CSV)...
         conn = get_db_connection()
         cursor = conn.cursor(dictionary=True)
         table_name = str(roll_no)
@@ -1119,3 +1115,4 @@ def performance():
 
 if __name__ == '__main__':
     app.run(debug=True)
+
