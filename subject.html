@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Subjects - Result Management System{% endblock %}
+
+{% block additional_styles %}
+.performance-container {
+    padding: 2rem 0;
+}
+.input-section {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+.table-section {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+{% endblock %}
+
+{% block content %}
+<!-- Navigation Bar -->
+<nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}">Tech Excellence College</a>
+        <div class="d-flex">
+            <a href="{{ url_for('admin_dashboard') }}" class="btn btn-danger">Back to Dashboard</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container performance-container">
+    <div class="input-section">
+        <h2 class="mb-4">Manage Subjects</h2>
+        {% if message %}
+            <div class="alert alert-success">{{ message }}</div>
+        {% endif %}
+        <form method="POST" action="{{ url_for('manage_subjects') }}">
+            <div class="row">
+                <div class="col-md-5 mb-3">
+                    <label for="old_subject" class="form-label">Old Subject</label>
+                    <input type="text" class="form-control" id="old_subject" name="old_subject" required>
+                </div>
+                <div class="col-md-5 mb-3">
+                    <label for="new_subject" class="form-label">New Subject</label>
+                    <input type="text" class="form-control" id="new_subject" name="new_subject" required>
+                </div>
+            </div>
+            <div class="text-center mt-3">
+                <button type="submit" class="btn btn-primary">Update</button>
+            </div>
+        </form>
+    </div>
+    <div class="table-section">
+        <h4>Subjects Table</h4>
+        <div class="table-responsive">
+            <table class="table table-bordered table-striped">
+                <thead>
+                    <tr>
+                        <th>Subject</th>
+                        <th>Semester</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in subjects_data %}
+                    <tr>
+                        <td>{{ row.subject }}</td>
+                        <td>{{ row.semester }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
