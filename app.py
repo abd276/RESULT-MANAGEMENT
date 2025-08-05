@@ -1,4 +1,3 @@
-
 import io
 import csv
 import json
@@ -42,6 +41,7 @@ def calculate_grade(marks_obtained, maximum_marks):
     elif percentage >= 70:
         return 'A+'
     elif percentage >= 60:
+        return 'A'
         return 'A'
     elif percentage >= 55:
         return 'B+'
@@ -1044,6 +1044,27 @@ def init_db():
 
 # Initialize database
 init_db()
+
+@app.route('/manage-subjects', methods=['GET', 'POST'])
+@admin_required
+def manage_subjects():
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    message = None
+
+    if request.method == 'POST':
+        old_subject = request.form.get('old_subject')
+        new_subject = request.form.get('new_subject')
+        if old_subject and new_subject:
+            cursor.execute("UPDATE subjects SET subject = %s WHERE subject = %s", (new_subject, old_subject))
+            conn.commit()
+            message = f"Subject '{old_subject}' updated to '{new_subject}' successfully."
+
+    cursor.execute("SELECT subject, semester FROM subjects ORDER BY semester, subject")
+    subjects_data = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return render_template('subject.html', subjects_data=subjects_data, message=message)
 
 @app.route('/performance', methods=['GET', 'POST'])
 @admin_required
