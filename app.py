@@ -580,6 +580,7 @@ def release_result(roll_no):
             practical = data.get('Practical')
             remarks = data.get('remarks', {})
             fail = False
+
             internal_val = str(internal) if remarks.get('Internal') == 'Pass' else f"{internal}F"
             theory_val = str(theory) if remarks.get('Theory') == 'Pass' else f"{theory}F"
             practical_val = str(practical) if remarks.get('Practical') == 'Pass' else f"{practical}F"
